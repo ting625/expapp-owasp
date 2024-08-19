@@ -67,8 +67,6 @@ app.use(helmet());
 //      R O U T E S
 //=======================
 
-var errors = [];
-
 app.get("/", (req,res) =>{
     res.render("home");
 })
@@ -87,6 +85,7 @@ app.post("/login",passport.authenticate("local",{
 }),function (req, res){
 });
 
+// always return var errors for EJS template
 app.get("/register",(req,res)=>{
     res.render("register", {
         errors: []
@@ -127,7 +126,7 @@ app.post("/register",
     ],
 
 async (req,res) => {
-    errors = validationResult(req);
+    const errors = validationResult(req);
     console.log(errors)
 
     if (errors.isEmpty()) {
