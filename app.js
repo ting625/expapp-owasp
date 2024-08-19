@@ -12,6 +12,8 @@ const express               =  require('express'),
       xss                   =  require('xss-clean'),
       helmet                =  require('helmet');
 
+      const { check, validationResult } = require('express-validator');
+
 //Connecting database
 mongoose.connect("mongodb://localhost/auth_demo");
 
@@ -64,9 +66,13 @@ app.use(helmet());
 //=======================
 //      R O U T E S
 //=======================
+
+var errors = [];
+
 app.get("/", (req,res) =>{
     res.render("home");
 })
+
 app.get("/userprofile" ,(req,res) =>{
     res.render("userprofile");
 })
@@ -74,31 +80,83 @@ app.get("/userprofile" ,(req,res) =>{
 app.get("/login",(req,res)=>{
     res.render("login");
 });
+
 app.post("/login",passport.authenticate("local",{
     successRedirect:"/userprofile",
     failureRedirect:"/login"
 }),function (req, res){
 });
+
 app.get("/register",(req,res)=>{
-    res.render("register");
+    res.render("register", {
+        errors: []
+    });
 });
 
-app.post("/register",(req,res)=>{
+app.post("/register",
+
+    [
+         // Username validation
+         check('username')
+         .isLength({ min: 6, max: 20 })
+         .withMessage('! Error: Username must be between 6 and 20 characters')
+         .matches(/^[a-zA-Z0-9]+$/)
+         .withMessage('! Error: Username can only contain letters and numbers'),
+
+        // Password validation
+         check('password')
+         .isLength({ min: 8 })
+         .withMessage('! Error: Password must be at least 8 characters long')
+         .matches(/[A-Z]/)
+         .withMessage('! Error: Password must contain at least one uppercase letter')
+         .matches(/[a-z]/)
+         .withMessage('! Error: Password must contain at least one lowercase letter')
+         .matches(/\d/)
+         .withMessage('! Error: Password must contain at least one digit')
+         .matches(/[!@#$%^&*]/)
+         .withMessage('! Error: Password must contain at least one special character (!@#$%^&*)'),
     
-    User.register(new User({username: req.body.username,email: req.body.email,phone: req.body.phone}),req.body.password,function(err,user){
-        if(err){
-            console.log(err);
-            res.render("register");
-        }
-        passport.authenticate("local")(req,res,function(){
-            res.redirect("/login");
-        })    
-    })
-})
+         check('email')
+         .isLength({ min: 1 })
+         .withMessage('! Error: Please enter an email'),
+
+         check('phone')
+         .isLength({ min: 1 })
+         .withMessage('! Error: Please enter a phone'),
+
+    ],
+
+async (req,res) => {
+    errors = validationResult(req);
+    console.log(errors)
+
+    if (errors.isEmpty()) {
+
+        User.register(new User({username: req.body.username,email: req.body.email,phone: req.body.phone}),req.body.password,function(err,user){
+            if(err){
+                console.log(err);
+                res.render("register");
+            }
+            passport.authenticate("local")(req,res,function(){
+                res.redirect("/login");
+            })    
+        })
+
+    } else {
+        return res.render('register', { 
+            title: 'Registration form',
+            errors: errors.array(),
+            data: req.body,       
+        });
+    }
+    
+});
+
 app.get("/logout",(req,res)=>{
     req.logout();
     res.redirect("/");
 });
+
 function isLoggedIn(req,res,next) {
     if(req.isAuthenticated()){
         return next();

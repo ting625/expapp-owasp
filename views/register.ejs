@@ -4,6 +4,15 @@
 <h3>
     Sign Up
 </h3>
+
+<% if (errors && errors.length > 0) { %>
+    <ul id="errors">
+      <% errors.forEach(function(error) { %>
+        <li><%= error.msg %></li>
+      <% }); %>
+    </ul>
+<% } %>
+
 <form action="/register" method="POST">
     <label for="username">Username</label>
     <input type="text" id="username" name="username">
